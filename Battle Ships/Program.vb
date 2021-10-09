@@ -3,6 +3,7 @@
 Module Program
     Dim playerBoard(8, 8), enemyBoard(8, 8) As String
     Dim playerMissilesFired, playerMissilesHit, enemyMissilesFired, enemyMissilesHit, turnID As Integer
+    Dim loadedGame As Boolean = False
 
     Sub Main()
         Dim choice As String
@@ -12,13 +13,15 @@ Module Program
         MainMenu()
 
         Do
+            Console.WriteLine()
             Console.WriteLine("[1] Play Again")
             Console.WriteLine("[2] Exit To Menu")
             Console.WriteLine("[3] Exit Game")
-            Console.Write("Enter your choice: ")
+            Console.Write("Choice > ")
             choice = Console.ReadLine
 
             If choice = "1" Then
+                loadedGame = False
                 PlayGame()
             ElseIf choice = "2" Then
                 Console.Clear()
@@ -28,7 +31,9 @@ Module Program
             Else
                 Console.WriteLine("Invalid Choice! Please type '1', '2' or '3'.")
                 Console.WriteLine()
+                Console.ForegroundColor = ConsoleColor.DarkGray
                 Console.WriteLine("Press Enter to continue")
+                Console.ForegroundColor = ConsoleColor.White
                 Console.ReadLine()
                 Console.Clear()
             End If
@@ -40,16 +45,20 @@ Module Program
 
         Do
             Console.WriteLine("[1] Start Game")
-            Console.WriteLine("[2] Exit Game")
-            Console.Write("Enter your choice: ")
+            Console.WriteLine("[2] Load Game")
+            Console.WriteLine("[3] Exit Game")
+            Console.Write("Choice > ")
             choice = Console.ReadLine
 
             If choice = "1" Then
+                loadedGame = False
                 PlayGame()
             ElseIf choice = "2" Then
+                LoadGame()
+            ElseIf choice = "3" Then
                 End
             Else
-                Console.WriteLine("Invalid Choice! Please type '1' or '2'.")
+                Console.WriteLine("Invalid Choice! Please type '1', '2' or '3'.")
                 Console.WriteLine()
                 Console.ForegroundColor = ConsoleColor.DarkGray
                 Console.WriteLine("Press Enter to continue")
@@ -57,19 +66,18 @@ Module Program
                 Console.ReadLine()
                 Console.Clear()
             End If
-        Loop Until choice = "1" Or choice = "2"
+        Loop Until choice = "1" Or choice = "2" Or choice = "3"
     End Sub
 
     Sub PlayGame()
         Dim playerWon, enemyWon As Boolean
         Dim randomNum As New Random
 
-        GenerateBoard(playerBoard)
-        GenerateBoard(enemyBoard)
+        If Not loadedGame Then
+            GenerateBoard(playerBoard)
+            GenerateBoard(enemyBoard)
+        End If
         Console.Clear()
-
-        'SaveGame()
-        'LoadGame()
 
         Console.WriteLine("YOUR BOARD")
         DisplayBoard(playerBoard, 0)
@@ -143,7 +151,6 @@ Module Program
         Console.Write($"{Math.Round(enemyMissilesHit / enemyMissilesFired * 100, 2)}%")
         Console.ForegroundColor = ConsoleColor.White
         Console.WriteLine("!")
-        Console.WriteLine()
     End Sub
 
     Function CheckBoard(gameBoard)
@@ -207,7 +214,17 @@ Module Program
         Try
             fileReader = New StreamReader(filename)
         Catch ex As Exception
+            Console.ForegroundColor = ConsoleColor.Red
+            Console.WriteLine()
             Console.WriteLine("No saved games found!")
+            Console.ForegroundColor = ConsoleColor.DarkGray
+            Console.WriteLine()
+            Console.WriteLine("Press Enter to continue")
+            Console.ForegroundColor = ConsoleColor.White
+            Console.ReadLine()
+
+            Console.Clear()
+            MainMenu()
             Exit Sub
         End Try
 
@@ -224,8 +241,10 @@ Module Program
                 enemyBoard(x, y) = fileReader.ReadLine
             Next
         Next
-
         fileReader.Close()
+
+        loadedGame = True
+        PlayGame()
     End Sub
 
     Sub HardEnemyTurn()
@@ -283,7 +302,9 @@ Module Program
         DisplayBoard(playerBoard, 0)
 
         Console.WriteLine()
+        Console.ForegroundColor = ConsoleColor.DarkGray
         Console.WriteLine("Press Enter to continue")
+        Console.ForegroundColor = ConsoleColor.White
         Console.ReadLine()
     End Sub
 
@@ -306,13 +327,29 @@ Module Program
             validMissileLocation = False
 
             Try
-                Console.WriteLine("Enter a location to fire a missle!")
+                Console.Write("Enter a location to fire a missle!")
+                Console.ForegroundColor = ConsoleColor.DarkGray
+                Console.WriteLine(" (Or type 'save' to save and exit the game)")
+                Console.ForegroundColor = ConsoleColor.White
                 Console.Write("X: ")
+                If Console.ReadLine.ToLower = "save" Then
+                    SaveGame()
+
+                    Console.ForegroundColor = ConsoleColor.Green
+                    Console.WriteLine()
+                    Console.WriteLine("The game has been saved!")
+                    Console.ForegroundColor = ConsoleColor.DarkGray
+                    Console.WriteLine()
+                    Console.WriteLine("Press Enter to exit")
+                    Console.ReadLine()
+                    End
+                End If
                 missileLocationX = Console.ReadLine - 1
 
                 Console.Write("Y: ")
                 missileLocationY = Console.ReadLine - 1
             Catch ex As Exception
+
                 If ex.GetType.ToString = "System.InvalidCastException" And missileLocationX = 0 Then
                     Console.ForegroundColor = ConsoleColor.DarkGray
                     Console.WriteLine($"Invalid Location! Your X coordinate must be a number between 1 and {enemyBoard.GetLength(0)}")
@@ -382,7 +419,9 @@ Module Program
         DisplayBoard(enemyBoard, 1)
 
         Console.WriteLine()
+        Console.ForegroundColor = ConsoleColor.DarkGray
         Console.WriteLine("Press Enter to continue")
+        Console.ForegroundColor = ConsoleColor.White
         Console.ReadLine()
     End Sub
 
