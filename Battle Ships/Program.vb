@@ -1,9 +1,10 @@
 ﻿Imports System.IO
 
 Module Program
-    Dim playerBoard(8, 8), enemyBoard(8, 8) As String
+    Dim playerBoard(8, 8), enemyBoard(8, 8), playerName As String
     Dim playerMissilesFired, playerMissilesHit, enemyMissilesFired, enemyMissilesHit, turnID As Integer
     Dim loadedGame As Boolean = False
+    Dim playerWon, enemyWon As Boolean
 
     Sub Main()
         Dim choice As String
@@ -70,14 +71,24 @@ Module Program
     End Sub
 
     Sub PlayGame()
-        Dim playerWon, enemyWon As Boolean
         Dim randomNum As New Random
 
         If Not loadedGame Then
             GenerateBoard(playerBoard)
             GenerateBoard(enemyBoard)
+            playerMissilesFired = 0
+            playerMissilesHit = 0
+            enemyMissilesFired = 0
+            enemyMissilesHit = 0
+            turnID = 0
+
+            Console.Clear()
+            Console.Write("Enter your name > ")
+            playerName = Console.ReadLine
+            Console.ReadLine()
         End If
-        Console.Clear()
+        playerWon = False
+        enemyWon = False
 
         Console.WriteLine("YOUR BOARD")
         DisplayBoard(playerBoard, 0)
@@ -99,7 +110,7 @@ Module Program
             End If
 
             Console.Clear()
-        Loop Until playerWon Or enemyWon 'I know these exit conditions aren't strictly required, they are just here in case of unforseen circumstances that may cause an infinite loop
+        Loop Until playerWon Or enemyWon ' conditions not strictly required
         Console.Clear()
 
         If playerWon Then
@@ -151,6 +162,9 @@ Module Program
         Console.Write($"{Math.Round(enemyMissilesHit / enemyMissilesFired * 100, 2)}%")
         Console.ForegroundColor = ConsoleColor.White
         Console.WriteLine("!")
+
+        Console.WriteLine()
+        TopScores()
     End Sub
 
     Function CheckBoard(gameBoard)
@@ -182,6 +196,71 @@ Module Program
         Return numOfShipsLeft
     End Function
 
+    Sub TopScores()
+        ' Top 5 Scores Leaderboard
+        Dim fileReader As StreamReader
+        Dim fileWriter As StreamWriter
+        Dim filename As String
+        Dim scores(1, 4) As String
+
+        filename = "TopScores.txt"
+        Try
+            fileReader = New StreamReader(filename)
+        Catch ex As Exception
+            fileWriter = New StreamWriter(filename)
+
+            For r = 0 To 4
+                For c = 0 To 1
+                    If c = 0 Then
+                        fileWriter.WriteLine("999")
+                    Else
+                        fileWriter.WriteLine("PLACEHOLDER")
+                    End If
+                Next
+            Next
+
+            fileWriter.Close()
+
+            fileReader = New StreamReader(filename)
+        End Try
+
+        For r = 0 To 4
+            For c = 0 To 1
+                scores(c, r) = fileReader.ReadLine
+            Next
+        Next
+        fileReader.Close()
+
+        If playerWon Then
+            For r = 0 To 4
+                If playerMissilesFired < CInt(scores(0, r)) Then
+                    scores(0, r) = playerMissilesFired.ToString
+                    scores(1, r) = playerName
+                    Exit For
+                End If
+            Next
+        End If
+
+        Console.WriteLine("TOP SCORES")
+        For r = 0 To 4
+            For c = 0 To 1
+                If c = 0 Then
+                    Console.Write($"{scores(c, r)} - ")
+                Else
+                    Console.WriteLine(scores(c, r))
+                End If
+            Next
+        Next
+
+        fileWriter = New StreamWriter(filename)
+        For r = 0 To 4
+            For c = 0 To 1
+                fileWriter.WriteLine(scores(c, r))
+            Next
+        Next
+        fileWriter.Close()
+    End Sub
+
     Sub SaveGame()
         Dim fileWriter As StreamWriter
         Dim filename As String
@@ -202,7 +281,16 @@ Module Program
                 fileWriter.WriteLine(enemyBoard(x, y))
             Next
         Next
+        fileWriter.Close()
 
+        ' There is probably a better way to do this
+        filename = "GameStats.txt"
+        fileWriter = New StreamWriter(filename)
+        fileWriter.WriteLine(playerName)
+        fileWriter.WriteLine(playerMissilesFired)
+        fileWriter.WriteLine(playerMissilesHit)
+        fileWriter.WriteLine(enemyMissilesFired)
+        fileWriter.WriteLine(enemyMissilesHit)
         fileWriter.Close()
     End Sub
 
@@ -243,6 +331,16 @@ Module Program
         Next
         fileReader.Close()
 
+        ' Again, there is likely a better way to do this
+        filename = "GameStats.txt"
+        fileReader = New StreamReader(filename)
+        playerName = fileReader.ReadLine
+        playerMissilesFired = fileReader.ReadLine
+        playerMissilesHit = fileReader.ReadLine
+        enemyMissilesFired = fileReader.ReadLine
+        enemyMissilesHit = fileReader.ReadLine
+        fileReader.Close()
+
         loadedGame = True
         PlayGame()
     End Sub
@@ -257,7 +355,7 @@ Module Program
         Console.WriteLine()
         Threading.Thread.Sleep(1000)
 
-        'ToDo: Improved AI
+        ' ToDo: Improved AI
     End Sub
 
     Sub EasyEnemyTurn()
@@ -311,6 +409,7 @@ Module Program
     Sub PlayerTurn()
         Dim validMissileLocation As Boolean
         Dim missileLocationX, missileLocationY As Integer
+        Dim choice As String
 
         Console.WriteLine("ENEMY BOARD")
         DisplayBoard(enemyBoard, 1)
@@ -332,7 +431,9 @@ Module Program
                 Console.WriteLine(" (Or type 'save' to save and exit the game)")
                 Console.ForegroundColor = ConsoleColor.White
                 Console.Write("X: ")
-                If Console.ReadLine.ToLower = "save" Then
+
+                choice = Console.ReadLine
+                If choice.ToLower = "save" Then
                     SaveGame()
 
                     Console.ForegroundColor = ConsoleColor.Green
@@ -343,8 +444,9 @@ Module Program
                     Console.WriteLine("Press Enter to exit")
                     Console.ReadLine()
                     End
+                Else
+                    missileLocationX = choice - 1
                 End If
-                missileLocationX = Console.ReadLine - 1
 
                 Console.Write("Y: ")
                 missileLocationY = Console.ReadLine - 1
@@ -560,23 +662,18 @@ Module Program
                 Randomize()
                 shipDirection = randomNum.Next(0, 4)
 
-                Console.WriteLine($"X: {shipX}, Y: {shipY}, Direction: {shipDirection}, Size: {shipSize}") 'D
-
                 If shipDirection = 0 Then
                     For i = 0 To shipSize - 1
                         tempY = shipY - i
 
                         If tempY < 0 Then
-                            Console.WriteLine($"Y: {tempY} -- INVALID") 'D
                             validShipPlacement = False
                             Exit For
                         ElseIf gameBoard(tempX, tempY) <> "O" Then
-                            Console.WriteLine($"Y: {tempY} -- INVALID for #") 'D
                             validShipPlacement = False
                             Exit For
                         End If
 
-                        Console.WriteLine($"Y: {tempY} -- VALID") 'D
                         validShipPlacement = True
                     Next
                 ElseIf shipDirection = 1 Then
@@ -584,16 +681,13 @@ Module Program
                         tempX = shipX + i
 
                         If tempX > 7 Then
-                            Console.WriteLine($"X: {tempX} -- INVALID") 'D
                             validShipPlacement = False
                             Exit For
                         ElseIf gameBoard(tempX, tempY) <> "O" Then
-                            Console.WriteLine($"X: {tempX} -- INVALID for #") 'D
                             validShipPlacement = False
                             Exit For
                         End If
 
-                        Console.WriteLine($"X: {tempX} -- VALID") 'D
                         validShipPlacement = True
                     Next
                 ElseIf shipDirection = 2 Then
@@ -601,16 +695,13 @@ Module Program
                         tempY = shipY + i
 
                         If tempY > 7 Then
-                            Console.WriteLine($"Y: {tempY} -- INVALID") 'D
                             validShipPlacement = False
                             Exit For
                         ElseIf gameBoard(tempX, tempY) <> "O" Then
-                            Console.WriteLine($"Y: {tempY} -- INVALID for #") 'D
                             validShipPlacement = False
                             Exit For
                         End If
 
-                        Console.WriteLine($"Y: {tempY} -- VALID") 'D
                         validShipPlacement = True
                     Next
                 ElseIf shipDirection = 3 Then
@@ -618,16 +709,13 @@ Module Program
                         tempX = shipX - i
 
                         If tempX < 0 Then
-                            Console.WriteLine($"X: {tempX} -- INVALID") 'D
                             validShipPlacement = False
                             Exit For
                         ElseIf gameBoard(tempX, tempY) <> "O" Then
-                            Console.WriteLine($"X: {tempX} -- INVALID for #") 'D
                             validShipPlacement = False
                             Exit For
                         End If
 
-                        Console.WriteLine($"X: {tempX} -- VALID") 'D
                         validShipPlacement = True
                     Next
                 End If
